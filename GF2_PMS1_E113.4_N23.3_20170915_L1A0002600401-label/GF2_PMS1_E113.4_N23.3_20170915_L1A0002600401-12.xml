@@ -1,0 +1,50 @@
+<annotation>
+	<folder>GF2_PMS1_E113.4_N23.3_20170915_L1A0002600401-</folder>
+	<filename>GF2_PMS1_E113.4_N23.3_20170915_L1A0002600401-12.png</filename>
+	<path>D:\遥感影像\task\image\0\GF2_PMS1_E113.4_N23.3_20170915_L1A0002600401-\GF2_PMS1_E113.4_N23.3_20170915_L1A0002600401-12.png</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>1024</width>
+		<height>1024</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>football ground</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>294</xmin>
+			<ymin>390</ymin>
+			<xmax>330</xmax>
+			<ymax>428</ymax>
+		</bndbox>
+	</object>
+	<object>
+		<name>football ground</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>51</xmin>
+			<ymin>130</ymin>
+			<xmax>78</xmax>
+			<ymax>169</ymax>
+		</bndbox>
+	</object>
+	<object>
+		<name>football ground</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>9</xmin>
+			<ymin>114</ymin>
+			<xmax>37</xmax>
+			<ymax>149</ymax>
+		</bndbox>
+	</object>
+</annotation>

@@ -1,0 +1,26 @@
+<annotation>
+	<folder>GF2_PMS1_E113.4_N23.3_20170915_L1A0002600401-</folder>
+	<filename>GF2_PMS1_E113.4_N23.3_20170915_L1A0002600401-5.png</filename>
+	<path>D:\遥感影像\task\image\0\GF2_PMS1_E113.4_N23.3_20170915_L1A0002600401-\GF2_PMS1_E113.4_N23.3_20170915_L1A0002600401-5.png</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>1024</width>
+		<height>1024</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>bridge</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>414</xmin>
+			<ymin>520</ymin>
+			<xmax>460</xmax>
+			<ymax>579</ymax>
+		</bndbox>
+	</object>
+</annotation>

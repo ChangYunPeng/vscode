@@ -1,0 +1,7 @@
+{
+    "sync-rsync.remote": "room304@192.168.192.115:/home/room304/storage/vscode/",
+    "sync-rsync.onSave": true,
+    "sync-rsync.notification": true,
+    "sync-rsync.executable": "rsync",
+    "python.pythonPath": "/Users/changyunpeng/anaconda2/envs/myenvs_tf/bin/python"
+}
