@@ -3,5 +3,5 @@
     "sync-rsync.onSave": true,
     "sync-rsync.notification": true,
     "sync-rsync.executable": "rsync",
-    "python.pythonPath": "/Users/changyunpeng/anaconda2/envs/myenvs_tf/bin/python"
+    "python.pythonPath": "/Users/changyunpeng/anaconda2/envs/myenvs_tf/bin/python",
 }

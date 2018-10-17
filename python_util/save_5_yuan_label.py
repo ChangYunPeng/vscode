@@ -70,11 +70,8 @@ def get_info_from_xml(xml_path):
 
         # print objects
         namelist = objects.getElementsByTagName('name')
-        # print 'namelist:',namelist
         objectname = namelist[0].childNodes[0].data
 
-
-        # print (objectname)
       
         bndbox = objects.getElementsByTagName('bndbox')
   
@@ -103,7 +100,7 @@ def get_dataset_path():
     img_dataset_path = '/home/room304/storage/datasets/GF2_yolo/images'
     latlon_xml_foler_path = '/home/room304/storage/datasets/unzip-GF2'
     imgpoints_folder_path = '/home/room304/storage/datasets/rgb_block_label/'
-    saved_json_file_path = '/home/room304/storage/datasets/GF2_yolo/record_new_GF2_PMS1_E113.8_N22.6_20171227_L1A0002883457.json'
+    saved_json_file_path = '/home/room304/storage/datasets/GF2_yolo/record_new_all.json'
 
     datatset_json = []
     
@@ -113,8 +110,8 @@ def get_dataset_path():
         for img_path_iter in img_list:
             json_tmp = {}
             img_name = img_path_iter.split('-')[0]
-            if not img_name == 'GF2_PMS1_E113.8_N22.6_20171227_L1A0002883457':
-                continue
+            # if not img_name == 'GF2_PMS1_E113.8_N22.6_20171227_L1A0002883457':
+            #     continue
 
 
             img_num = int((img_path_iter.split('-')[1]).split('.')[0])
@@ -243,7 +240,7 @@ def get_dataset_path():
                 json_iter['block_lon4'] = lon4
                 
                 json.dump(json_iter,f)
-                f.write('\n')
+                # f.write('\n')
                 # print (json_iter)
    
         

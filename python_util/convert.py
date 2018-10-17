@@ -190,8 +190,8 @@ if __name__ == '__main__':
     
     
     parser.add_argument('--lonlat2pxpy', default=0, type=int)
-    parser.add_argument('--lon', default=105.406, type=float)
-    parser.add_argument('--lat', default=25.9164, type=float)
+    parser.add_argument('--lon', default=105.597, type=float)
+    parser.add_argument('--lat', default=25.6641, type=float)
     
     parser.add_argument('--pxpy2lonlat', default=0, type=int)
     parser.add_argument('--row', default=6908, type=float)
@@ -229,7 +229,9 @@ if __name__ == '__main__':
         # lat,lon = pixel_to_latlon(trans, pxpy[0][0], pxpy[1][0], zone_num , zone_let )
         # print 'back', lat, lon
     else:
-        print (zone_num, zone_let)
-        lat,lon = pixel_to_latlon(trans, args.row, args.col, zone_num , zone_let )
-        print (lat,lon)
+        lat,lon = pixel_to_latlon(trans, args.col, args.row, zone_num , zone_let )
+        tmp_json = {}
+        tmp_json['lat'] = lat
+        tmp_json['lon'] = lon
+        print (tmp_json)
 #     print utm.to_latlon(pxpy[0], pxpy[1],48,'R')

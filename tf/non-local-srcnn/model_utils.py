@@ -3,6 +3,7 @@ import tensorflow.contrib.slim as slim
 import os
 from tf_datasets import get_tf_datasets
 import datetime
+import numpy as np
 
 def NonLocalBlock(input_x, out_channels, sub_sample=True, is_bn=True, scope='NonLocalBlock'):
     batchsize, height, width, in_channels = input_x.get_shape().as_list()
@@ -21,13 +22,18 @@ def NonLocalBlock(input_x, out_channels, sub_sample=True, is_bn=True, scope='Non
             theta = slim.conv2d(input_x, out_channels, [1,1], stride=1, scope='theta')
 
         print(g.get_shape().as_list())
-        g_x = tf.reshape(g, [batchsize,out_channels, -1])
+        # g = tf.transpose(g, [0,3,2,1])
+        g_x = tf.reshape(g, [batchsize,-1,out_channels])
         
-        g_x = tf.transpose(g_x, [0,2,1])
+        # g_x = tf.transpose(g_x, [0,2,1]) # after reshap, the axis h*w is fixed
 
-        theta_x = tf.reshape(theta, [batchsize, out_channels, -1])
-        theta_x = tf.transpose(theta_x, [0,2,1])
-        phi_x = tf.reshape(phi, [batchsize, out_channels, -1])
+        # theta = tf.transpose(theta, [0,3,2,1])
+        theta_x = tf.reshape(theta, [batchsize, -1,out_channels])
+        # theta_x = tf.transpose(theta_x, [0,2,1])
+
+        # phi = tf.transpose(phi, [0,3,2,1])
+        phi_x = tf.reshape(phi, [batchsize, -1, out_channels])
+        phi_x = tf.transpose(phi_x, [0,2,1])
 
         f = tf.matmul(theta_x, phi_x)
         # ???
@@ -76,7 +82,8 @@ def EncoderLayerBlock(input_x, out_channels, sub_sample=True, is_bn=True, scope=
 def DecoderLayerBlock(input_x, out_channels, up_sample=True, is_bn=True, scope='NonLocalBlock',phrase = True):
     batchsize, height, width, in_channels = input_x.get_shape().as_list()
     with tf.variable_scope(scope) as sc:
-        x = PS(input_x,2,color=True)
+        # x = PS(input_x,2,color=True)
+        x = slim.conv2d_transpose(input_x, out_channels, [5,5], stride=2, scope='l1')
         # x = slim.conv2d(input_x, out_channels, [3,3], stride=1, scope='l1')
         x = slim.conv2d( x, out_channels, [3,3], stride=1, scope='l2')
 
@@ -109,28 +116,48 @@ class NonLocalNet:
                                 normalizer_fn = None,
                                 weights_initializer = tf.truncated_normal_initializer(stddev=0.02),
                                 weights_regularizer = None):
+                single_init = [[0.000874, 0.006976, 0.01386, 0.006976, 0.000874],
+                                            [0.006976, 0.0557, 0.110656, 0.0557, 0.006976],
+                                            [0.01386, 0.110656, 0.219833, 0.110656, 0.01386],
+                                            [0.006976, 0.0557, 0.110656, 0.0557, 0.006976],
+                                            [0.000874, 0.006976, 0.01386, 0.006976, 0.000874]]
+                single_init = single_init[np.newaxis,:,:]
+                conca_init = np.concatenate([single_init,single_init,single_init], axis=0)
+                conca_init = conca_init[:,:,:,np.newaxis]
+                
+                ker_init = tf.constant_initializer([[0.000874, 0.006976, 0.01386, 0.006976, 0.000874],
+                                            [0.006976, 0.0557, 0.110656, 0.0557, 0.006976],
+                                            [0.01386, 0.110656, 0.219833, 0.110656, 0.01386],
+                                            [0.006976, 0.0557, 0.110656, 0.0557, 0.006976],
+                                            [0.000874, 0.006976, 0.01386, 0.006976, 0.000874]])
                 with tf.name_scope('convolution') as sc_cnv:
-                    with tf.name_scope('encoder1') as sc_cnv:
-                        e1 = EncoderLayerBlock(input_x,1024,sub_sample=True,is_bn=True,scope='e1',phrase=is_training)
+                    out = tf.layers.conv2d( input_x, 3, [5,5],strides=1, padding='same', use_bias=False, trainable=True,kernel_initializer=ker_init)
+                    # x = NonLocalBlock( x, 512, sub_sample=False, is_bn=False, scope='NonLocalBlock')
+                    # x = slim.conv2d( x, 3, [3,3], stride=1, scope='l2')
+                    # out = tf.nn.sigmoid(x,name = 'out') 
                     
-                    with tf.name_scope('encoder2') as sc_cnv:
-                        e2 = EncoderLayerBlock(e1,1024,sub_sample=True,is_bn=True,scope='e2',phrase=is_training)
+                    # with tf.name_scope('encoder1') as sc_cnv:
+                    #     e1 = EncoderLayerBlock(input_x,1024,sub_sample=True,is_bn=True,scope='e1',phrase=is_training)
                     
-                    with tf.name_scope('encoder3') as sc_cnv:
-                        e3 = EncoderLayerBlock(e2,1024,sub_sample=True,is_bn=True,scope='e3',phrase=is_training)
+                    # with tf.name_scope('encoder2') as sc_cnv:
+                    #     e2 = EncoderLayerBlock(e1,1024,sub_sample=True,is_bn=True,scope='e2',phrase=is_training)
                     
-                    with tf.name_scope('non-local') as sc_cnv:
-                        nl = NonLocalBlock(e3, 1024, sub_sample=False, is_bn=True, scope='NonLocalBlock')
+                    # with tf.name_scope('encoder3') as sc_cnv:
+                    #     e3 = EncoderLayerBlock(e2,1024,sub_sample=True,is_bn=True,scope='e3',phrase=is_training)
                     
-                    with tf.name_scope('decoder1') as sc_cnv:
-                        d1 = DecoderLayerBlock(e3,1024,up_sample=True,is_bn=True,scope='d1',phrase=is_training) + e2
+                    # with tf.name_scope('non-local') as sc_cnv:
+                    #     nl = NonLocalBlock(e3, 1024, sub_sample=False, is_bn=True, scope='NonLocalBlock')
                     
-                    with tf.name_scope('decoder2') as sc_cnv:
-                        d2 = DecoderLayerBlock(d1,1024,up_sample=True,is_bn=True,scope='d2',phrase=is_training) + e1
+                    # with tf.name_scope('decoder1') as sc_cnv:
+                    #     d1 = DecoderLayerBlock(e3,1024,up_sample=True,is_bn=True,scope='d1',phrase=is_training) + e2
                     
-                    with tf.name_scope('decoder3') as sc_cnv:
-                        d3 = DecoderLayerBlock(d2,3,up_sample=True,is_bn=True,scope='d3',phrase=is_training)
-                        out = 0.00001*tf.nn.tanh(d3,name = 'out') + input_x
+                    # with tf.name_scope('decoder2') as sc_cnv:
+                    #     d2 = DecoderLayerBlock(d1,1024,up_sample=True,is_bn=True,scope='d2',phrase=is_training) + e1
+                    
+                    # with tf.name_scope('decoder3') as sc_cnv:
+                    #     d3 = DecoderLayerBlock(d2,1024,up_sample=True,is_bn=True,scope='d3',phrase=is_training)
+                    #     d3 = slim.conv2d( d3, 3 , [3,3], stride=1, scope='out_conv')
+                    #     out = tf.nn.sigmoid(d3,name = 'out') 
                         # out = input_x
                     
         return out
@@ -174,7 +201,7 @@ if __name__=='__main__':
 
     train_num = 100000
     save_iter = 20
-    batch_size = 8
+    batch_size = 16
     model_save_path = '/home/room304/storage/CODE_LOG/non_local/save_model'
     # input_x = tf.Variable(tf.random_normal([2,128,128,3]))
     # softmax = nonlocalnet.Net(input_x)
@@ -185,6 +212,9 @@ if __name__=='__main__':
     next_example, netx_label = iterator.get_next()
     next_example.set_shape([batch_size, None, None, 3])
     netx_label.set_shape([batch_size, None, None, 3])
+
+    batch_size_in = tf.shape(next_example)[0] 
+    batch_size_out= tf.shape(netx_label)[0] 
     nonlocalnet.build_model(next_example, netx_label)
     gpu_options = tf.GPUOptions(allow_growth=True)
 
@@ -197,17 +227,20 @@ if __name__=='__main__':
                 print('%d-th'%train_idx,datetime.datetime.now().strftime('%Y_%m_%d_%H_%M'))
                 em_in, em_lab, em_out, psnr,ssim,loss = sess.run([next_example, netx_label,nonlocalnet.pred_outputs, nonlocalnet.psnr,nonlocalnet.ssim, nonlocalnet.loss])
 
-                print('input max : ', em_in.max())
-                print('input min : ', em_in.min())
-                print('label max : ', em_lab.max())
-                print('label min : ', em_lab.min())
+                # print('input max : ', em_in.max())
+                # print('input min : ', em_in.min())
+                # print('label max : ', em_lab.max())
+                # print('label min : ', em_lab.min())
                 print('output max : ', em_out.max())
                 print('output min : ', em_out.min())
 
                 print('psnr:%.15f \n ssim:%.15f \n loss:%.15f \n'%(psnr,ssim,loss) )
                 nonlocalnet.saver.save(sess,model_save_path)
             else :
-                sess.run(nonlocalnet.optim)
+                _,size_in,size_out = sess.run([nonlocalnet.optim,batch_size_in,batch_size_out])
+                print('%d-th'%train_idx )
+                print('size in : ', size_in)
+                print('size out : ', size_out)
 
         print(sess.run(nonlocalnet.psnr))
         print(sess.run(nonlocalnet.ssim))
