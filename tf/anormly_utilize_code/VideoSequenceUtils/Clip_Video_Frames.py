@@ -46,9 +46,11 @@ def get_pointed_opticalflow(video_list, img_num, img_interval, cur_start_idx=0, 
         im = cv2.imread(cur_frame_path)
         gray_image = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         cur_frame = np.array(gray_image, dtype=np.float)
+        print(cur_frame.shape)
         im = cv2.imread(next_frampe_path)
         gray_image = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
         next_frame = np.array(gray_image, dtype=np.float)
+        print(next_frame.shape)
 
         # cur_frame = np.array(Image.open(cur_frame_path).convert('L'), dtype=np.float)
         # next_frame = np.array(Image.open(next_frampe_path).convert('L'), dtype=np.float)
@@ -81,9 +83,22 @@ def get_pointed_frame_and_opticalflow(video_list, img_num, img_interval, cur_sta
         # next_frame = np.array(Image.open(next_frampe_path).convert('L'), dtype=np.float)
 
         cur_opticalflow = get_optical_flow_of_frames(cur_frame, next_frame)
-        
-        cur_frame = np.resize(cur_frame,(img_size, img_size,1))
-        cur_opticalflow = np.resize(cur_opticalflow,(img_size, img_size,2))
+
+        if img_size:
+            cur_frame = np.array(cv2.resize(cur_frame,(img_size, img_size)),dtype=np.float)
+            cur_opticalflow = np.array(cv2.resize(cur_opticalflow,(img_size, img_size)),dtype=np.float)
+        else :
+            cur_frame = np.array(cur_frame,dtype=np.float)
+            cur_opticalflow = np.array(cur_opticalflow,dtype=np.float)
+            w,h = cur_frame.shape
+            w = w - w % crop_imgsize
+            h = h - h % crop_imgsize
+            cur_frame = cur_frame[0:w:,0:h]
+            cur_opticalflow = cur_opticalflow[0:w,0:h,:]
+
+
+        # cur_frame = np.resize(cur_frame,(img_size, img_size,1))
+        # cur_opticalflow = np.resize(cur_opticalflow,(img_size, img_size,2))
         # print cur_frame.shape
         # print cur_opticalflow.shape
         # cur_frame = cur_frame.resize((img_size, img_size))
@@ -92,7 +107,7 @@ def get_pointed_frame_and_opticalflow(video_list, img_num, img_interval, cur_sta
         # w,h = cur_frame.shape
 
         cur_frame_np = np.array(cur_frame, dtype=np.float) / np.float(255.0)
-        cur_frame_np = cur_frame_np[np.newaxis, : , : , :]
+        cur_frame_np = cur_frame_np[np.newaxis, : , : , np.newaxis]
         cur_opticalflow = cur_opticalflow[np.newaxis, : , : , :]
         # print cur_frame_np.shape
         # print cur_opticalflow.shape
@@ -114,7 +129,7 @@ class Clip_Video_Frames_and_OpticalFlow_Randomly_Train:
         self.opticalflow_tags = opticalflow_tags
 
         self.start_idx = 0
-        self.crop_imgsize = 8
+        self.crop_imgsize = 4
 
         self.video_path = videopath
         
@@ -135,7 +150,7 @@ class Clip_Video_Frames_and_OpticalFlow_Randomly_Train:
         
         for i in selected_list:
             if self.frame_tags and self.opticalflow_tags:
-                video_frame_sequence_batch.append(get_pointed_frame_and_opticalflow(self.video_list,self.img_num,self.img_interval,i))
+                video_frame_sequence_batch.append(get_pointed_frame_and_opticalflow(self.video_list,self.img_num,self.img_interval,i,4,self.img_size))
                 continue
             if self.frame_tags:
                 video_frame_sequence_batch.append(get_pointed_frame(self.video_list,self.img_num,self.img_interval,i))

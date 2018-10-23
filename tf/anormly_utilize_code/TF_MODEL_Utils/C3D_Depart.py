@@ -11,6 +11,7 @@ class C3D_WithoutBN:
         self.s_size = s_size
         self.reuse = False
         self.input_channel = input_channel
+        self.not_last_activation = False
 
         self.h_w_stride = 1
         self.depth_stride = 2
@@ -36,6 +37,7 @@ class C3D_WithoutBN:
 
     def __call__(self, inputs, training=True):
         inputs = tf.convert_to_tensor(inputs)
+        activation = True
         with tf.variable_scope(self.model_scope_name, reuse=self.reuse):
 
             with tf.variable_scope('encoder'):
@@ -46,6 +48,7 @@ class C3D_WithoutBN:
                                                       strides=self.encoder_stride_num[encoder_layer_idx],
                                                       padding='SAME', use_bias=False, kernel_initializer=self.initial,
                                                       name='conv')
+                                                    
                         x_internal = tf.nn.tanh(x_internal, name='tanh')
                         inputs = x_internal
                 outputs_encoder = inputs
@@ -53,6 +56,8 @@ class C3D_WithoutBN:
 
             with tf.variable_scope('decoder'):
                 for decoder_layer_idx in range(len(self.decoder_channel_num)):
+                    if decoder_layer_idx+1 == len(self.decoder_channel_num) and self.not_last_activation:
+                        activation = False
                     with tf.variable_scope('decoder_layer%d'%decoder_layer_idx):
                         x_internal = inputs
                         x_internal = tf.layers.conv3d_transpose(x_internal, self.decoder_channel_num[decoder_layer_idx], kernel_size=[4, 4, 4],
@@ -60,7 +65,12 @@ class C3D_WithoutBN:
                                                                 padding='SAME', use_bias=False,
                                                                 kernel_initializer=self.initial,
                                                                 name='conv')
-                        x_internal = tf.nn.tanh(x_internal,name='tanh')
+                        x_internal = tf.layers.conv3d(x_internal, self.decoder_channel_num[decoder_layer_idx], kernel_size=[4, 4, 4],
+                                                      strides=1,
+                                                      padding='SAME', use_bias=False, kernel_initializer=self.initial,
+                                                      name='conv_ap')
+                        if activation == True:
+                            x_internal = tf.nn.tanh(x_internal,name='tanh')
                         inputs = x_internal
                 outputs_decoder = inputs
 

@@ -3,7 +3,9 @@ import numpy as np
 
 def get_optical_flow_of_frames(frame1,frame2):
     # print frame1.dtype
-    flow = cv2.calcOpticalFlowFarneback(frame1, frame2,None, 0.5, 3, 15, 3, 5, 1.2, 0)
+    flow = cv2.calcOpticalFlowFarneback(frame1, frame2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+    # print(flow.max())
+    # print(flow.min())
     return flow
 
 def get_rgb_np_of_optical_flow(optical_flow_np):

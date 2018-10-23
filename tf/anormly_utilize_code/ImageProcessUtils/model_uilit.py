@@ -2,6 +2,7 @@ import numpy as np
 import os
 from matplotlib import pyplot as plt
 import scipy.io as scio
+from sklearn.metrics import roc_auc_score, roc_curve
 
 from PIL import Image
 
@@ -13,6 +14,17 @@ def save_plot_img(save_path,losses_np):
     fig.savefig(save_path)
     plt.close()
     return
+
+def compute_eer(far, frr):
+    cords = zip(far, frr)
+    min_dist = 999999
+    for item in cords:
+        item_far, item_frr = item
+        dist = abs(item_far - item_frr)
+        if dist < min_dist:
+            min_dist = dist
+            eer = (item_far + item_frr) / 2
+    return eer
 
 def save_double_plot_img(save_path,losses_np,losses_label):
 
@@ -38,6 +50,15 @@ def min_max_np(video_loss):
 
     return video_losses
 
+def max_min_np(video_loss):
+
+    video_loss = np.asarray(video_loss)
+    video_losses_max = np.max(video_loss, axis=0)
+    video_losses_min = np.min(video_loss, axis=0)
+    video_losses =  (video_loss - video_losses_min * np.ones( video_loss.shape)) / (video_losses_max * np.ones(video_loss.shape)  - video_losses_min * np.ones( video_loss.shape))
+
+    return video_losses
+
 def mk_dirs(dir_list):    
     for dirs_idx in dir_list:
         if not os.path.exists(dirs_idx):
@@ -54,16 +75,16 @@ def save_img_list(input_batch):
     return
 
 def save_roc_auc_plot_img(save_path,y_score,y_true):
-    normalized_y_socre = np.ones(y_score.shape) - min_max_np(y_score)
-    print (y_score.shape[0])
-    print (y_true.shape[0])
-    start_idx = int((y_true.shape[0] - y_score.shape[0])/2)
-    y_true = y_true[start_idx:start_idx+y_score.shape[0]]
-    print (start_idx)
-    print (y_true.shape[0])
-    # fpr,tpr,threshold =
+    y_score = np.concatenate(y_score,axis=0)
+    y_true = np.concatenate(y_true,axis=0)
+    frame_auc = roc_auc_score(y_true=y_true, y_score=y_score)
+    fpr, tpr, thresholds = roc_curve(y_true=y_true, y_score=y_score, pos_label=1)
+    frame_eer = compute_eer(far=fpr, frr=1 - tpr)
 
+    print('auc', frame_auc)
+    print('eer', frame_eer)
     return
+
 
 def save_npy_as_mat(save_path,y_score,y_true):
     normalized_y_socre = np.ones(y_score.shape) - min_max_np(y_score)

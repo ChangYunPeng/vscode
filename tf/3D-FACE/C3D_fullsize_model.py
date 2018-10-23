@@ -1,6 +1,5 @@
 import sys
 sys.path.append('../anormly_utilize_code')
-sys.path.append('./datasets')
 
 import tensorflow as tf
 import time
@@ -21,9 +20,6 @@ from VideoSequenceUtils.DataSetImgSequence import Sequence_Shanghai_Dataset_Fram
 from ucsd_t1 import TestVideoFile as ucsdt1
 from ucsd_t2 import TestVideoFile as ucsdt2
 
-from datasets_sequence import multi_train_datasets
-# from datasets import dataset_sequence.multi_train_datasets as multi_train_datasets
-
 
 class C3D_Running:
     def __init__(self):
@@ -32,15 +28,15 @@ class C3D_Running:
         self.optical_c3d_model = c3d_model(input_channel=2,model_scope_name='vn4_optical_flow_test')
         self.optical_c3d_model.not_last_activation = True
         self.optical_c3d_model.encoder_channel_num = [64,        16]
-        self.optical_c3d_model.encoder_stride_num = [[2, 2, 2],[2, 2, 2]]
-        self.optical_c3d_model.decoder_channel_num = [32,      self.optical_c3d_model.input_channel]
-        self.optical_c3d_model.decoder_stride_num = [[2, 2, 2],[2, 2, 2]]
+        self.optical_c3d_model.encoder_stride_num = [[2, 1, 1],[2, 1, 1]]
+        self.optical_c3d_model.decoder_channel_num = [64,      self.optical_c3d_model.input_channel]
+        self.optical_c3d_model.decoder_stride_num = [[2, 1, 1],[2, 1, 1]]
 
         self.gray_c3d_model = c3d_model(input_channel=1,model_scope_name='vn4_gray_test')
-        self.gray_c3d_model.encoder_channel_num = [32,          8]
-        self.gray_c3d_model.encoder_stride_num = [[2, 2, 2],[2, 2, 2]]
-        self.gray_c3d_model.decoder_channel_num = [32,          self.gray_c3d_model.input_channel]
-        self.gray_c3d_model.decoder_stride_num = [[2, 2, 2],[2, 2, 2]]
+        self.gray_c3d_model.encoder_channel_num = [64,          16]
+        self.gray_c3d_model.encoder_stride_num = [[2, 1, 1],[2, 1, 1]]
+        self.gray_c3d_model.decoder_channel_num = [64,          self.gray_c3d_model.input_channel]
+        self.gray_c3d_model.decoder_stride_num = [[2, 1, 1],[2, 1, 1]]
 
         self.mid_model = c2d_model(input_channel = 24,model_scope_name='vn4_concate_model')
         self.mid_model.encoder_channel_num = [512, 256]
@@ -59,7 +55,7 @@ class C3D_Running:
         self.selected_gpu_num = 0
 
         self.build_model_adn_loss_opt()
-        self.Data_Sequence = dataset_sequence(frame_tags = True,opticalflow_tags=True,img_num=self.video_imgs_num)
+        self.Data_Sequence = dataset_sequence(frame_tags = True,opticalflow_tags=True,img_num=self.video_imgs_num,img_size=256, crop_size = 4)
 
         # self.optical_save_path = '/media/room304/TB/TensorFlow_Saver/ANORMLY/MID_LR_X3_VN4_NewTest/MODEL_OPTICAL/'
         # self.gray_save_path = '/media/room304/TB/TensorFlow_Saver/ANORMLY/MID_LR_X3_VN4/MODEL_GRAY/'
@@ -74,7 +70,7 @@ class C3D_Running:
         # self.full_ucsd_datatset_path = '/media/room304/TB/TensorFlow_Saver/ANORMLY/MID_LR_X3_VN4/RESULT/FULL_Data_Set/UCSD_Path/'
         # self.full_shanghai_datatset_path = '/media/room304/TB/TensorFlow_Saver/ANORMLY/MID_LR_X3_VN4/RESULT/FULL_Data_Set/Shanghai/'
 
-        self.root_path = '/home/room304/TB/TB/TensorFlow_Saver/ANORMLY/MODIFY_CV2RESIZE/'
+        self.root_path = '/home/room304/TB/TB/TensorFlow_Saver/ANORMLY/ONLY_DENSE_TEMPORAL/'
 
         self.optical_save_path = self.root_path + 'MODEL_OPTICAL/'
         self.gray_save_path = self.root_path + 'MODEL_GRAY/'
@@ -102,24 +98,6 @@ class C3D_Running:
         tmp_dir_list.append(self.full_shanghai_datatset_path)
         mk_dirs(tmp_dir_list)
 
-        return
-    
-    def restore_model_weghts(self, sess ):
-        
-        # self.gray_save_path = self.gray_save_path + 'trainable_weights.cptk'
-        # self.optical_save_path = self.optical_save_path + 'trainable_weights.cptk'
-        # self.mid_stage_save_path = self.mid_stage_save_path + 'trainable_weights.cptk'
-
-        gray_cptk = tf.train.get_checkpoint_state(self.gray_save_path)
-        optical_cptk = tf.train.get_checkpoint_state(self.optical_save_path)
-        mid_stage_cptk = tf.train.get_checkpoint_state(self.mid_stage_save_path)
-        print(gray_cptk.model_checkpoint_path)
-        print(optical_cptk.model_checkpoint_path)
-        print(mid_stage_cptk.model_checkpoint_path)
-
-        self.gray_saver.restore(sess, gray_cptk.model_checkpoint_path)
-        self.optical_saver.restore(sess, optical_cptk.model_checkpoint_path)
-        self.mid_stage_saver.restore(sess, mid_stage_cptk.model_checkpoint_path)
         return
 
     def build_model_adn_loss_opt(self):
@@ -160,22 +138,28 @@ class C3D_Running:
 
                     # print mid_stage_in
                     # print mid_stage_out
-                    self.optical_loss_sequences = tf.reduce_mean(tf.square(self.optical_train_in_ph - self.optical_train_out_ph),axis=4)
-                    self.gray_loss_sequences = tf.reduce_mean(tf.square(self.gray_train_in_ph - self.gray_train_out_ph),axis=4)
 
-                    # self.optical_loss = tf.reduce_mean(tf.square(self.optical_train_in_ph - self.optical_train_out_ph)) * self.optical_flow_loss_ratio
-                    # self.gray_loss = tf.reduce_mean(tf.square(self.gray_train_in_ph - self.gray_train_out_ph)) * self.gray_loss_ratio
-                    # self.mid_stage_loss = tf.reduce_mean(tf.square(mid_stage_in - mid_stage_out))* self.mid_stage_loss_ratio
+                    self.optical_loss_sequences_mean = tf.reduce_mean(tf.square(self.optical_train_in_ph - self.optical_train_out_ph),axis=4)
+                    self.gray_loss_sequences_mean = tf.reduce_mean(tf.square(self.gray_train_in_ph - self.gray_train_out_ph),axis=4)
+                    
+                    self.optical_loss_sequences_sum = tf.reduce_sum(tf.square(self.optical_train_in_ph - self.optical_train_out_ph),axis=4)
+                    self.gray_loss_sequences_sum = tf.reduce_sum(tf.square(self.gray_train_in_ph - self.gray_train_out_ph),axis=4)
 
-                    self.optical_loss = tf.reduce_mean(tf.square(self.optical_train_in_ph - self.optical_train_out_ph)) * self.optical_flow_loss_ratio
-                    self.gray_loss = tf.reduce_mean(tf.square(self.gray_train_in_ph - self.gray_train_out_ph)) * self.gray_loss_ratio
+                    self.mid_stage_mask = []
+
+                    self.optical_loss = tf.reduce_mean(self.optical_loss_sequences_mean) * self.optical_flow_loss_ratio
+                    self.gray_loss = tf.reduce_mean(self.gray_loss_sequences_mean) * self.gray_loss_ratio
                     self.mid_stage_loss = tf.reduce_mean(tf.square(mid_stage_in - mid_stage_out))* self.mid_stage_loss_ratio
 
-                    self.optical_loss_sum = tf.reduce_sum(tf.square(self.optical_train_in_ph - self.optical_train_out_ph)) * self.optical_flow_loss_ratio
-                    self.gray_loss_sum = tf.reduce_sum(tf.square(self.gray_train_in_ph - self.gray_train_out_ph)) * self.gray_loss_ratio
+
+                    self.optical_loss_sum = tf.reduce_sum(self.optical_loss_sequences_sum) * self.optical_flow_loss_ratio
+                    self.gray_loss_sum = tf.reduce_sum(self.gray_loss_sequences_sum) * self.gray_loss_ratio
                     self.mid_stage_loss_sum = tf.reduce_sum(tf.square(mid_stage_in - mid_stage_out))* self.mid_stage_loss_ratio
 
                     self.total_loss = self.optical_loss + self.gray_loss + self.mid_stage_loss
+                    self.total_loss_sum = self.optical_loss_sum + self.gray_loss_sum + self.mid_stage_loss_sum
+                    self.total_loss_sequence_mean = self.optical_loss_sequences_mean + self.gray_loss_sequences_mean
+                    self.total_loss_sequence_sum = self.optical_loss_sequences_sum + self.gray_loss_sequences_sum
                     
                     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
                     with tf.control_dependencies(update_ops):
@@ -183,15 +167,10 @@ class C3D_Running:
                         self.gray_apply = gray_ae_opt.minimize(self.gray_loss,var_list=self.gray_c3d_model.trainable_variable)
                         self.mid_stage_apply = mid_ae_opt.minimize(self.mid_stage_loss,var_list=self.mid_model.trainable_variable)
                         self.c3d_apply = autoencoder_opt.minimize(self.optical_loss + self.gray_loss + self.mid_stage_loss, var_list=self.optical_c3d_model.trainable_variable + self.gray_c3d_model.trainable_variable + self.mid_model.trainable_variable)
-                       
+                        
         self.gray_c3d_model.summary()
         self.optical_c3d_model.summary()
         self.mid_model.summary()
-
-        self.gray_saver = tf.train.Saver(var_list=self.gray_c3d_model.all_variables)
-        self.optical_saver = tf.train.Saver(var_list=self.optical_c3d_model.all_variables)
-        self.mid_stage_saver = tf.train.Saver(var_list=self.optical_c3d_model.all_variables)
-
         tf.summary.scalar('optical_loss', self.optical_loss)
         tf.summary.scalar('gray_loss', self.gray_loss)
         tf.summary.scalar('mid_stage_loss', self.mid_stage_loss)
@@ -311,9 +290,9 @@ class C3D_Running:
         optical_saver = tf.train.Saver(var_list=self.optical_c3d_model.all_variables)
         mid_stage_saver = tf.train.Saver(var_list=self.optical_c3d_model.all_variables)
 
-        gray_save_path = self.gray_save_path + 'trainable_weights.cptk-17000'
-        optical_save_path = self.optical_save_path + 'trainable_weights.cptk-17000'
-        mid_stage_save_path = self.mid_stage_save_path + 'trainable_weights.cptk-17000'
+        gray_save_path = self.gray_save_path + 'trainable_weights.cptk'
+        optical_save_path = self.optical_save_path + 'trainable_weights.cptk'
+        mid_stage_save_path = self.mid_stage_save_path + 'trainable_weights.cptk'
 
         summaries_dir = self.summaries_dir + 'SINGLE_GPU%d.CPTK' % time.time()
 
@@ -322,20 +301,16 @@ class C3D_Running:
 
         gpu_options = tf.GPUOptions(allow_growth=True)
 
-        my_multi_train_datasets = multi_train_datasets(batch_size = 4, video_num = 4, frame_interval = 2, is_frame = True, is_Optical = True,crop_size=4, img_size=256)
-
         with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
             sess.run(tf.global_variables_initializer())
-            # self.restore_model_weghts(sess)
-            gray_saver.restore(sess,gray_save_path)
-            optical_saver.restore(sess,optical_save_path)
-            mid_stage_saver.restore(sess, mid_stage_save_path)
+            # gray_saver.restore(sess,gray_save_path)
+            # optical_saver.restore(sess,optical_save_path)
+            # mid_stage_saver.restore(sess, mid_stage_save_path)
 
             for idx in range(max_iteration):  
-                batch_data = my_multi_train_datasets.get_batches()
-                # batch_data = []
-                # while(batch_data == []):
-                #     batch_data = self.Data_Sequence.get_train_random_batches(batch_size=self.batch_size)
+                batch_data = []
+                while(batch_data == []):
+                    batch_data = self.Data_Sequence.get_train_random_batches(batch_size=self.batch_size)
                 # print batch_data.shape
                 batch_data_gray = batch_data[:,:,:,:,0:1]
                 batch_data_optical = batch_data[:,:,:,:,1:3]
@@ -369,9 +344,9 @@ class C3D_Running:
                     # train_writer.add_summary(sum_tmp, (idx + 1))
                     # train_writer.flush()
                     # self.test_model(sess)
-                    print (gray_saver.save(sess, gray_save_path, global_step=idx+1))
-                    print (optical_saver.save(sess, optical_save_path, global_step=idx+1))
-                    print (mid_stage_saver.save(sess, mid_stage_save_path, global_step=idx+1))
+                    print (gray_saver.save(sess, gray_save_path))
+                    print (optical_saver.save(sess, optical_save_path))
+                    print (mid_stage_saver.save(sess, mid_stage_save_path))
         return
 
     def test_model(self, sess):
@@ -397,7 +372,7 @@ class C3D_Running:
 
             gray_output_np, optical_output_np, cur_total_loss, cur_gray_loss, cur_optical_loss, cur_mid_stage_loss = sess.run(
                 [self.gray_train_out_ph, self.optical_train_out_ph, self.total_loss, self.gray_loss, self.optical_loss,
-                 self.mid_stage_loss,self.gray_loss_sum, self.optical_loss_sum, self.mid_stage_loss_sum],
+                 self.mid_stage_loss],
                 feed_dict={self.optical_train_in_ph: batch_data_optical, self.gray_train_in_ph: batch_data_gray,
                            self.phase: False})
             total_losses.append(cur_total_loss)
@@ -423,72 +398,57 @@ class C3D_Running:
 
         return
 
-    
     def test_ucsd_dataset_model(self):
         gray_saver = tf.train.Saver(var_list=self.gray_c3d_model.all_variables)
         optical_saver = tf.train.Saver(var_list=self.optical_c3d_model.all_variables)
         mid_stage_saver = tf.train.Saver(var_list=self.optical_c3d_model.all_variables)
 
-        gray_save_path = self.gray_save_path + 'trainable_weights.cptk-17000-20000'
-        optical_save_path = self.optical_save_path + 'trainable_weights.cptk-17000-20000'
-        mid_stage_save_path = self.mid_stage_save_path + 'trainable_weights.cptk-17000-20000'
-        
+        gray_save_path = self.gray_save_path + 'trainable_weights.cptk'
+        optical_save_path = self.optical_save_path + 'trainable_weights.cptk'
+        mid_stage_save_path = self.mid_stage_save_path + 'trainable_weights.cptk'
+
         gpu_options = tf.GPUOptions(allow_growth=True)
 
         with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
             sess.run(tf.global_variables_initializer())
-            self.restore_model_weghts(sess)
-            # gray_saver.restore(sess,gray_save_path)
-            # optical_saver.restore(sess,optical_save_path)
-            # mid_stage_saver.restore(sess, mid_stage_save_path)
+            gray_saver.restore(sess, gray_save_path)
+            optical_saver.restore(sess, optical_save_path)
+            mid_stage_saver.restore(sess, mid_stage_save_path)
+
 
             full_test_dataset = sequence_dataset_sequence(img_num = 4)
             full_dataset_frame_losses = []
-            full_dataset_frame_gray_losses = []
-            full_dataset_frame_opticalflow_losses = []
-            full_dataset_frame_midstage_losses = []
             full_dataset_pixel_losses = []
             while (full_test_dataset.continue_tags) :
             # for idx in range(1):
                 save_path = self.full_ucsd_datatset_path + 'UCSD_Dataset_%d_Videoth_%d/' % ( full_test_dataset.selected_list_num, full_test_dataset.selected_video_num)
                 test_video_dataset = full_test_dataset.get_test_frames_objects()
-                tmp_total_losses,tmp_gray_losses,tmp_opticalflow_losses,tmp_midstage_losses, tmp_batch_data_loss = self.test_cur_video_model(sess,test_video_dataset,save_path)
+                tmp_total_losses, tmp_batch_data_loss = self.test_cur_video_model(sess,test_video_dataset,save_path)
                 print(tmp_total_losses.shape)
                 # print(tmp_batch_data_loss.shape)
                 full_dataset_frame_losses.append(tmp_total_losses)
-                full_dataset_frame_gray_losses.append(tmp_gray_losses)
-                full_dataset_frame_opticalflow_losses.append(tmp_opticalflow_losses)
-                full_dataset_frame_midstage_losses.append(tmp_midstage_losses)
                 # full_dataset_pixel_losses.append(tmp_batch_data_loss)
             
             ucsd1_full_dataset_frame_losses = full_dataset_frame_losses[0:36]
-            ucsd1_full_dataset_framegray_losses = full_dataset_frame_gray_losses[0:36]
-            ucsd1_full_dataset_frameopticalflow_losses = full_dataset_frame_opticalflow_losses[0:36]
-            ucsd1_full_dataset_framemidstage_losses = full_dataset_frame_midstage_losses[0:36]
             ucsd2_full_dataset_frame_losses = full_dataset_frame_losses[36:]
 
             croped_ucsd_t1 = []
-            for idx, (ucsd_t1_iter,dataset_frame_loss_iter,dataset_gray_loss_iter,dataset_ot_loss_iter,dataset_mid_loss_iter) in enumerate(zip(ucsdt1,ucsd1_full_dataset_frame_losses,ucsd1_full_dataset_framegray_losses,ucsd1_full_dataset_frameopticalflow_losses, ucsd1_full_dataset_framemidstage_losses)):
-                print('ucsd-1 video-', idx, 'total-loss')
-                save_roc_auc_plot_img('',dataset_frame_loss_iter, ucsd_t1_iter[0:dataset_frame_loss_iter.shape[0]])
-                print('ucsd-1 video-', idx, 'gray-loss')
-                save_roc_auc_plot_img('',dataset_gray_loss_iter, ucsd_t1_iter[0:dataset_frame_loss_iter.shape[0]])
-                print('ucsd-1 video-', idx, 'ot-loss')
-                save_roc_auc_plot_img('',dataset_ot_loss_iter, ucsd_t1_iter[0:dataset_frame_loss_iter.shape[0]])
-                print('ucsd-1 video-', idx, 'mid-loss')
-                save_roc_auc_plot_img('',dataset_mid_loss_iter, ucsd_t1_iter[0:dataset_frame_loss_iter.shape[0]])
+            for idx, (ucsd_t1_iter,dataset_frame_loss_iter) in enumerate(zip(ucsdt1,ucsd1_full_dataset_frame_losses)):
+                print(dataset_frame_loss_iter.shape)
+                print(ucsd_t1_iter.shape)
+                croped_ucsd_t1.append(ucsd_t1_iter[0:dataset_frame_loss_iter.shape[0]])
+            
+            for dataset_frame_loss_iter in ucsd2_full_dataset_frame_losses:
+                print(dataset_frame_loss_iter.shape)
 
-                # print(dataset_frame_loss_iter.shape)
-                # print(ucsd_t1_iter.shape)
-                # croped_ucsd_t1.append(ucsd_t1_iter[0:dataset_frame_loss_iter.shape[0]])
-            # print('total_loss') 
-            # save_roc_auc_plot_img('',ucsd1_full_dataset_frame_losses, croped_ucsd_t1)
-            # print('gray loss') 
-            # save_roc_auc_plot_img('',ucsd1_full_dataset_framegray_losses, croped_ucsd_t1)
-            # print('opticalflow loss') 
-            # save_roc_auc_plot_img('',ucsd1_full_dataset_frameopticalflow_losses, croped_ucsd_t1)
-            # print('mid_stage loss') 
-            # save_roc_auc_plot_img('',ucsd1_full_dataset_framemidstage_losses, croped_ucsd_t1)
+            # full_dataset_frame_losses = np.concatenate(full_dataset_frame_losses,axis=0)
+            # # full_dataset_pixel_losses = np.concatenate(full_dataset_pixel_losses,axis=0)
+            # ucsd1_full_dataset_frame_losses = full_dataset_frame_losses[0:36]
+            # ucsd2_full_dataset_frame_losses = full_dataset_frame_losses[36:]
+            # # print(ucsd1_full_dataset_frame_losses.shape)
+            # # print(ucsd2_full_dataset_frame_losses.shape)
+            # print('ucsd_t1')
+            # save_roc_auc_plot_img('',ucsd1_full_dataset_frame_losses, ucsdt1)
             # print('ucsd_t2')
             # save_roc_auc_plot_img('',ucsd2_full_dataset_frame_losses, ucsdt2)
         return
@@ -555,14 +515,24 @@ class C3D_Running:
         file = open(save_path + 'video_path.txt', 'w')
         file.write(test_video_dataset.video_path)
 
-        return max_min_np(total_losses),max_min_np(gray_losses),max_min_np(optical_losses),max_min_np(mid_stage_losses), pixel_level_losses
+        return max_min_np(total_losses), pixel_level_losses
 
     def test_shanghai_dataset_model(self):
+        gray_saver = tf.train.Saver(var_list=self.gray_c3d_model.all_variables)
+        optical_saver = tf.train.Saver(var_list=self.optical_c3d_model.all_variables)
+        mid_stage_saver = tf.train.Saver(var_list=self.optical_c3d_model.all_variables)
+
+        gray_save_path = self.gray_save_path + 'trainable_weights.cptk'
+        optical_save_path = self.optical_save_path + 'trainable_weights.cptk'
+        mid_stage_save_path = self.mid_stage_save_path + 'trainable_weights.cptk'
+
         gpu_options = tf.GPUOptions(allow_growth=True)
 
         with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
             sess.run(tf.global_variables_initializer())
-            self.restore_model_weghts(sess)
+            gray_saver.restore(sess, gray_save_path)
+            optical_saver.restore(sess, optical_save_path)
+            mid_stage_saver.restore(sess, mid_stage_save_path)
 
 
             full_test_dataset = sequence_shanghai_dataset_sequence(img_num = 4)
@@ -630,6 +600,6 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 run_model = C3D_Running()
 # run_model.train_gray_optical_c3d(2000)
 # run_model.train_mid_stage_c3d(1000)
-# run_model.train_c3d(20000)
+# run_model.train_c3d(10000)
 run_model.test_ucsd_dataset_model()
 # run_model.test_shanghai_dataset_model()

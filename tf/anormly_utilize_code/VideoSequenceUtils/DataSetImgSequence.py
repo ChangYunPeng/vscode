@@ -148,12 +148,14 @@ class Dataset_Video_List:
         print(self.train_video_list)
         
 class Dataset_Frame_and_OPTICALFLOW_Batches:
-    def __init__(self,frame_tags = True, opticalflow_tags = True,img_num = 8):
+    def __init__(self,frame_tags = True, opticalflow_tags = True,img_num = 8,img_size=256, crop_size = 4):
         self.my_dataset = Dataset_Video_List()
         self.random_interval = [2,4]
         self.img_num = img_num
         self.frame_tags = frame_tags
         self.opticalflow_tags = opticalflow_tags
+        self.img_size = img_size
+        self.crop_size = crop_size
 
         return
 
@@ -163,7 +165,7 @@ class Dataset_Frame_and_OPTICALFLOW_Batches:
         # print self.my_dataset.train_video_list[selected_list_num][selected_video_num]
         random_interval = np.int(random.randint(self.random_interval[0], self.random_interval[1]))
         my_tmp_ucsd_batch = Clip_Video_Frames_and_OpticalFlow_Randomly_Train(self.my_dataset.train_video_frames_list[selected_list_num][selected_video_num],self.my_dataset.train_video_list[selected_list_num][selected_video_num],
-                                                                             batch_size=batch_size,img_num=self.img_num,
+                                                                             batch_size=batch_size,img_num=self.img_num,img_size=self.img_size,
                                                                              img_interval=random_interval,frame_tags=self.frame_tags,opticalflow_tags=self.opticalflow_tags)
         my_tmp_batch = my_tmp_ucsd_batch.get_video_frame_batches()
         # print len(my_tmp_batch)
@@ -303,11 +305,11 @@ class Sequence_UCSD_Dataset_Frame_and_OPTICALFLOW_Batches:
 
         return
 
-    def get_test_frames_objects(self, batch_size=4):
+    def get_test_frames_objects(self, batch_size=4,random_interval = 1):
         selected_list_num = self.selected_list_num
         selected_video_num = self.selected_video_num
 
-        random_interval = 1
+        random_interval = random_interval
         my_tmp_ucsd_batch = Clip_Video_Frames_and_OpticalFlow_Orderly_Sequence_Test(
             self.my_dataset.test_video_frames_list[selected_list_num][selected_video_num],
             self.my_dataset.test_video_list[selected_list_num][selected_video_num],
