@@ -3,13 +3,15 @@ import os
 import numpy as np
 import random
 import cv2
-from ucsd_t1 import TestVideoFile as ucsdt1
+from datasets_labels import ShanghaiTechCampus_frames_labels,UCSD_v1_frames_labes,UCSD_v2_frames_labes,Avenue_frames_labels
 
 def video_path_list(dataset_path,video_name_length=7,type_name=7):
     tmp_video_path_list = [ ]
     tmp_video_frame_path_list = [ ]
-    for test_video_name in os.listdir(dataset_path):
-        # print test_video_name
+    tmp_video_path_list = os.listdir(dataset_path)
+    tmp_video_path_list.sort()
+    for test_video_name in tmp_video_path_list:
+        print (test_video_name)
         if len(test_video_name) == video_name_length:
             # print test_video_name
             video_path_name = os.path.join(dataset_path,test_video_name)
@@ -56,18 +58,27 @@ def get_pointed_opticalflow(video_list, img_num, img_interval, cur_start_idx=0, 
     for i in range(img_num):
         cur_frame_path =  video_list[ cur_start_idx + i * img_interval]
         next_frampe_path = video_list[ cur_start_idx + i * img_interval + 1]
-        cur_frame = np.array(cv2.cvtColor(cv2.imread(cur_frame_path), cv2.COLOR_BGR2GRAY), dtype=np.float)
-        next_frame = np.array(cv2.cvtColor(cv2.imread(next_frampe_path), cv2.COLOR_BGR2GRAY), dtype=np.float)
-        cur_opticalflow = cv2.calcOpticalFlowFarneback(cur_frame, next_frame, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-
         if img_size:
-            cur_opticalflow = np.array(cv2.resize(cur_opticalflow,(img_size, img_size)),dtype=np.float)
+            cur_frame = np.array(cv2.resize(cv2.cvtColor(cv2.imread(cur_frame_path), cv2.COLOR_BGR2GRAY),(img_size, img_size)), dtype=np.float)
+            next_frame = np.array(cv2.resize(cv2.cvtColor(cv2.imread(next_frampe_path), cv2.COLOR_BGR2GRAY),(img_size, img_size)), dtype=np.float)
+            cur_opticalflow = cv2.calcOpticalFlowFarneback(cur_frame, next_frame, None, 0.5, 3, 15, 3, 5, 1.2, 0)
         else :
-            cur_opticalflow = np.array(cur_opticalflow,dtype=np.float)
+            cur_frame = np.array(cv2.cvtColor(cv2.imread(cur_frame_path), cv2.COLOR_BGR2GRAY), dtype=np.float)
+            next_frame = np.array(cv2.cvtColor(cv2.imread(next_frampe_path), cv2.COLOR_BGR2GRAY), dtype=np.float)
+            cur_opticalflow = cv2.calcOpticalFlowFarneback(cur_frame, next_frame, None, 0.5, 3, 15, 3, 5, 1.2, 0)
             w,h = cur_frame.shape
             w = w - w % crop_imgsize
             h = h - h % crop_imgsize
             cur_opticalflow = cur_opticalflow[0:w,0:h,:]
+
+        # if img_size:
+        #     cur_opticalflow = np.array(cv2.resize(cur_opticalflow,(img_size, img_size)),dtype=np.float)
+        # else :
+        #     cur_opticalflow = np.array(cur_opticalflow,dtype=np.float)
+        #     w,h = cur_frame.shape
+        #     w = w - w % crop_imgsize
+        #     h = h - h % crop_imgsize
+        #     cur_opticalflow = cur_opticalflow[0:w,0:h,:]
 
         cur_opticalflow = cur_opticalflow[np.newaxis, : , : , :]
         frame_concate.append(cur_opticalflow)
@@ -80,7 +91,7 @@ def get_pointed_frame_and_opticalflow(video_list, img_num, img_interval, cur_sta
     for i in range(img_num):
         cur_frame_path =  video_list[ cur_start_idx + i * img_interval]
         next_frampe_path = video_list[ cur_start_idx + i * img_interval + 1]
-        print(cur_frame_path)
+        # print(cur_frame_path)
         cur_frame = np.array(cv2.cvtColor(cv2.imread(cur_frame_path), cv2.COLOR_BGR2GRAY), dtype=np.float)
         next_frame = np.array(cv2.cvtColor(cv2.imread(next_frampe_path), cv2.COLOR_BGR2GRAY), dtype=np.float)
         cur_opticalflow = cv2.calcOpticalFlowFarneback(cur_frame, next_frame, None, 0.5, 3, 15, 3, 5, 1.2, 0)
@@ -111,11 +122,16 @@ class basic_dataset(object):
         self.path = os.path.join( dataset_path, path)
         print(self.path)
         self.frame_path_list = video_path_list(self.path,vn_len, type_name)
+        self.frame_path_list.sort()
+        self.video_clips_num =  np.int(len(self.frame_path_list))
         
     def get_batches(self, batch_size = 4, video_num = 4, frame_interval = 2, is_frame = True, is_Optical = True,crop_imgsize = 4 ,img_size=256):
         batches = []
         for idx in range(batch_size):
             seletced_video_idx = random.randint(0, len(self.frame_path_list) - 1)
+
+            if frame_interval == 0:
+                frame_interval = random.randint(1,3)
             # print(seletced_video_idx)
             # print(len(self.frame_path_list[seletced_video_idx]))
             if is_Optical:
@@ -148,25 +164,30 @@ class testing_dataset(basic_dataset):
         super(testing_dataset, self).__init__(dataset_path ,path, vn_len, type_name)
         self.label_list = label_list
         
-    def init_video_sequence(self, selected_video_idx = False, video_num = 4, frame_interval = 2, is_frame = True, is_Optical = True,crop_imgsize = 4 ,img_size=256):
+    def init_video_sequence(self, selected_video_idx = 'random', video_num = 4, frame_interval = 2, is_frame = True, is_Optical = True,crop_imgsize = 4 ,img_size=256):
         self.videos_end = False
-        if not selected_video_idx:
+        if selected_video_idx == 'random':
             self.seletced_video_idx = random.randint(0, len(self.frame_path_list) - 1)
         else :
             self.seletced_video_idx =  selected_video_idx
-        
-        self.seletced_frame_idx = 0        
+            
         target_frame_idx = []
         sample_num = np.int((len(self.frame_path_list[self.seletced_video_idx]) - 1)/(video_num* frame_interval))
         selected_label = []
+        # print('selected video-idx:', self.seletced_video_idx)
+        print('frame num :', len(self.frame_path_list[self.seletced_video_idx]))
+        for frame_path_iter in self.frame_path_list[self.seletced_video_idx]:
+            print(frame_path_iter)
+        print('label num :',self.label_list[self.seletced_video_idx].shape)
         for sample_idx in range(sample_num):
             target_frame_idx.append(sample_idx*video_num*frame_interval)
             for img_idx in range(video_num):
                 frame_idx = sample_idx*video_num*frame_interval + img_idx * frame_interval
-                print(frame_idx)
+                # print(frame_idx)
                 selected_label.append(self.label_list[self.seletced_video_idx][frame_idx])
         
         self.moving_idx = 0
+        self.seletced_frame_idx = 0 
         # print(selected_label)
         # print(target_frame_idx)
         self.target_frame_list = target_frame_idx
@@ -194,10 +215,10 @@ class testing_dataset(basic_dataset):
             batches = []
             for sample_idx in range(range_0, range_1):
                 target_idx = self.target_frame_list[sample_idx]
-                print(target_idx)
+                # print(target_idx)
                 batches.append(self.get_selected_batches(self.seletced_video_idx,target_idx, video_num = self.video_num, frame_interval = self.frame_interval, is_frame = self.is_frame, is_Optical = self.is_Optical,crop_imgsize = self.crop_size ,img_size=self.img_size))
             batches = np.concatenate(batches, axis=0)
-            print(batches.shape)
+            # print(batches.shape)
             return batches
         else:
             return []
@@ -210,8 +231,8 @@ if __name__ == '__main__':
     # ave.get_batches(batch_size = 8, video_num = 4, frame_interval = 2, is_frame = True, is_Optical = True)
     # ucsd1  =  basic_dataset(dataset_path='/home/room304/TB/TB/DATASET/UCSD_Anomaly_Dataset.v1p2/UCSDped1/' ,path='Train', test_path='Test' ,vn_len=8, test_vn_len=7, type_name='tif', test_type_name='tif')
     # ucsd1.get_batches(batch_size = 8, video_num = 4, frame_interval = 2, is_frame = True, is_Optical = False)
-   ucsd1_t = testing_dataset(dataset_path='/home/room304/TB/TB/DATASET/UCSD_Anomaly_Dataset.v1p2/UCSDped1/' ,path='Test', vn_len=7, type_name='tif',label_list = ucsdt1)
-   ucsd1_t.init_video_sequence(selected_video_idx = False, video_num = 8, frame_interval = 1)
+   ave = testing_dataset(dataset_path='/home/room304/TB/TB/DATASET/Avenue_Dataset' ,path='testing_frame', vn_len=5, type_name='jpg',label_list = Avenue_frames_labels())
+   ave.init_video_sequence(selected_video_idx = 2, video_num = 8, frame_interval = 1)
     # shtec = basic_dataset(dataset_path='/home/room304/TB/TB/DATASET/ShanghaiTechCampus' ,path='training/videos', vn_len=6,type_name='jpg')
     # shtec.get_batches(batch_size = 8, video_num = 4, frame_interval = 2, is_frame = True, is_Optical = True)
 

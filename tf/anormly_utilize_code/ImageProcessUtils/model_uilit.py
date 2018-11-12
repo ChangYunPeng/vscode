@@ -55,7 +55,7 @@ def max_min_np(video_loss):
     video_loss = np.asarray(video_loss)
     video_losses_max = np.max(video_loss, axis=0)
     video_losses_min = np.min(video_loss, axis=0)
-    video_losses =  (video_loss - video_losses_min * np.ones( video_loss.shape)) / (video_losses_max * np.ones(video_loss.shape)  - video_losses_min * np.ones( video_loss.shape))
+    video_losses =  (video_loss - video_losses_min * np.ones( video_loss.shape)) / (video_losses_max * np.ones(video_loss.shape) - video_losses_min * np.ones( video_loss.shape))
 
     return video_losses
 
@@ -75,15 +75,15 @@ def save_img_list(input_batch):
     return
 
 def save_roc_auc_plot_img(save_path,y_score,y_true):
-    y_score = np.concatenate(y_score,axis=0)
-    y_true = np.concatenate(y_true,axis=0)
+    # y_score = np.concatenate(y_score,axis=0)
+    # y_true = np.concatenate(y_true,axis=0)
     frame_auc = roc_auc_score(y_true=y_true, y_score=y_score)
     fpr, tpr, thresholds = roc_curve(y_true=y_true, y_score=y_score, pos_label=1)
     frame_eer = compute_eer(far=fpr, frr=1 - tpr)
 
     print('auc', frame_auc)
     print('eer', frame_eer)
-    return
+    return frame_auc, frame_eer
 
 
 def save_npy_as_mat(save_path,y_score,y_true):

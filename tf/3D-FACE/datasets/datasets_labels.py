@@ -13,10 +13,10 @@ def ShanghaiTechCampus_frames_labels():
         # print(os.path.join(label_list_path, label_path))
         videos_label_path.append(os.path.join(label_list_path, label_path))
         label_iter = np.load(os.path.join(label_list_path, label_path))
-        print(label_iter.shape)
-        print(label_iter.dtype)
-        print('max value:', label_iter.max())
-        print('min value:', label_iter.min())
+        # print(label_iter.shape)
+        # print(label_iter.dtype)
+        # print('max value:', label_iter.max())
+        # print('min value:', label_iter.min())
         label_list.append(label_iter)
     return label_list
 
@@ -220,9 +220,7 @@ def Avenue_frames_labels():
     videos_label_path = []
 
     for label_idx,label_path in enumerate(label_path_list) :
-
-        print(os.path.join(label_list_path, '%d_label'%(label_idx+1)))
-
+        # print(os.path.join(label_list_path, '%d_label'%(label_idx+1)))
         path_iter = os.path.join(label_list_path, '%d_label'%(label_idx+1))
         mat = loadmat(path_iter)
         label_mask_list = mat['volLabel']
@@ -230,14 +228,39 @@ def Avenue_frames_labels():
 
         frame_label_list = []
         for video_idx in range(video_length):
-            print('video - idx :',video_idx,label_mask_list[0,video_idx].shape)
-            print('max value ',label_mask_list[0,video_idx].max())
+            # print('video - idx :',video_idx,label_mask_list[0,video_idx].shape)
+            # print('max value ',label_mask_list[0,video_idx].max())
             frame_label_list.append(np.asarray(label_mask_list[0,video_idx].max()))
         frame_label_list = np.hstack(frame_label_list)
         videos_label_path.append(path_iter)
         label_list.append(frame_label_list)
     return label_list
 
+def Avenue_pixel_labels():
+    label_list_path = '/home/room304/TB/TB/DATASET/Avenue_Dataset/ground_truth_demo/testing_label_mask'
+    label_path_list = os.listdir(label_list_path)
+    label_path_list.sort()
+    label_list = []
+    videos_label_path = []
+
+    for label_idx,label_path in enumerate(label_path_list) :
+        path_iter = os.path.join(label_list_path, '%d_label'%(label_idx+1))
+        mat = loadmat(path_iter)
+        label_mask_list = mat['volLabel']
+        video_length = label_mask_list.shape[1]
+        print(video_length)
+
+        frame_label_list = []
+        for video_idx in range(video_length):
+            print(label_mask_list[0,video_idx].shape)
+            # print('video - idx :',video_idx,label_mask_list[0,video_idx].shape)
+            # print('max value ',label_mask_list[0,video_idx].max())
+            # frame_label_list.append(np.asarray(label_mask_list[0,video_idx].max()))
+        # frame_label_list = np.hstack(frame_label_list)
+        # videos_label_path.append(path_iter)
+        # label_list.append(frame_label_list)
+    return label_list
+
 if __name__ == '__main__':
-    Avenue_frames_labels()
+    Avenue_pixel_labels()
     print('tesr')

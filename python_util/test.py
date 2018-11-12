@@ -8,10 +8,24 @@ import os
 import cv2
 from ucsd_t1 import TestVideoFile as t1
 
-video_path = '/home/room304/TB/TB/DATASET/Avenue_Dataset/testing_videos/01'
-path_list = os.listdir(video_path)
-path_list.sort()
-print(path_list)
+# def train_c3d(max_iteration = 100000 , restore_tags = True, trainable_whole=True, trainable_mid = True, ):
+#     if trainable_whole:
+#         print('whole')
+#     elif trainable_mid:
+#         print('mid stage')
+#     else:
+#         print('split ')
+
+
+# train_c3d(trainable_whole=False, trainable_mid = False)
+
+
+h = np.arange(1, 13, dtype=np.int32)
+print(h)
+hh = h[0:4:2]
+h2 = h[1:4:2]
+print(hh)
+print(h2)
 # img_size = False
 # if img_size:
 #     print(t1)
